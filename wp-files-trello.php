@@ -17,11 +17,10 @@ require_once plugin_dir_path(__FILE__) . './admin/activationPlugin/activatePlugi
 // ACTIIVATION PLUGIN FUNCTION -CREATE TABLES -
 register_activation_hook(__FILE__, 'createAllTables');
 
-register_deactivation_hook(__FILE__, 'deactivationSetNull');
 
 register_uninstall_hook(__FILE__, 'removeAllTables');
 
 
 
 // Include mfp-functions.php, use require_once to stop the script if mfp-functions.php is not found
-require_once plugin_dir_path(__FILE__) . 'utils/functions.php';Ya empecé a trabajar en el plugin de abogado.
+require_once plugin_dir_path(__FILE__) . 'utils/functions.php';
