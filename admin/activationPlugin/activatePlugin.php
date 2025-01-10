@@ -10,32 +10,48 @@ function createAllTables()
 {
   global $wpdb;
   $wpft_registered = "wpft_registered";
-  if (get_option($wpft_registered) != null) {
+
+  if (get_option($wpft_registered) !== false) {
     return;
-  } else {
-    try {
-      $table_plugin = $wpdb->prefix . "wp_file_trello";
-      $charset_collate = $wpdb->get_charset_collate();
+  }
 
-      $createTablePlugin = "CREATE TABLE $table_plugin  (
-              id INT(11) NOT NULL AUTO_INCREMENT,
-              employee_id INT(11) NOT NULL,
-              work_description TEXT NOT NULL,
-              file_path VARCHAR(255) DEFAULT NULL,
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              PRIMARY KEY (id)
-            ) $charset_collate;";
+  try {
+    // Create the custom database table.
+    $table_plugin = $wpdb->prefix . "wp_file_trello";
+    $charset_collate = $wpdb->get_charset_collate();
 
-      require_once ABSPATH . "wp-admin/includes/upgrade.php";
-      dbDelta($createTablePlugin);
+    $createTablePlugin = "CREATE TABLE $table_plugin (
+             id INT(11) NOT NULL AUTO_INCREMENT,
+             employee_id INT(11) NOT NULL,
+             work_description TEXT NOT NULL,
+             file_path VARCHAR(255) DEFAULT NULL,
+             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+             PRIMARY KEY (id)
+         ) $charset_collate;";
 
-    } catch (\Throwable $erro) {
-      error_log($erro->getMessage());
-      return $erro;
+    require_once ABSPATH . "wp-admin/includes/upgrade.php";
+    dbDelta($createTablePlugin);
+
+    // Add 'employee' role if it doesn't exist.
+    if (!get_role('employee')) {
+      $result = add_role('employee', 'Employee', [
+        'read' => true,
+        'upload_files' => true,
+      ]);
+
+      if ($result === null) {
+        error_log('Failed to create employee role.');
+      }
     }
+
+    // Mark plugin as registered.
     add_option($wpft_registered, true);
+  } catch (Throwable $error) {
+    error_log('Error during plugin activation: ' . $error->getMessage());
+    deactivate_plugins(plugin_basename(__FILE__)); // Deactivate the plugin on failure.
   }
 }
+
 
 function removeAllTables()
 {

@@ -51,7 +51,7 @@ function daily_work_admin_page()
 
 function daily_work_employee_panel()
 {
-    if (current_user_can('employee')) {
+    // if (current_user_can('employee')) {
         echo '<h2>Daily Work Submission</h2>';
         ?>
         <form method="post" enctype="multipart/form-data">
@@ -67,7 +67,8 @@ function daily_work_employee_panel()
         if (isset($_POST['submit_work'])) {
             global $wpdb;
             $table_name = $wpdb->prefix . 'daily_work';
-            $employee_id = get_current_user_id();
+            // $employee_id = get_current_user_id();
+            $employee_id = 1;
             $work_description = sanitize_textarea_field($_POST['work_description']);
             $file_path = '';
 
@@ -87,5 +88,5 @@ function daily_work_employee_panel()
             echo '<p>Work submitted successfully!</p>';
         }
     }
-}
+// }
 add_shortcode('daily_work_employee_panel', 'daily_work_employee_panel');
