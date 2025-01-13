@@ -7,86 +7,69 @@
  * 
  */
 
+require_once plugin_dir_path(__FILE__) . '../admin/admin-dashboard.php';
+require_once plugin_dir_path(__FILE__) . '../includes/case-manager.php';
+require_once plugin_dir_path(__FILE__) . '../user/user-dashboard.php';
 
-function daily_work_admin_menu()
+
+
+// Add 'employee' role if it doesn't exist.
+if (!get_role('employee')) {
+    $result = add_role('employee', 'Employee', [
+        'read' => true,
+        'upload_files' => true,
+    ]);
+
+    if ($result === null) {
+        error_log('Failed to create employee role.');
+    }
+}
+
+
+// Add a menu page for the admin dashboard.
+add_action('admin_menu', 'lfmt_add_admin_menu');
+
+function lfmt_add_admin_menu()
 {
+    // Add main menu page
     add_menu_page(
-        'Daily Work Submissions',
-        'Work Submissions',
-        'manage_options',
-        'daily-work-submissions',
-        'daily_work_admin_page'
+        'Law Firm Dashboard',       // Page title
+        'Law Firm Dashboard',       // Menu title
+        'manage_options',           // Capability
+        'law-firm-dashboard',       // Menu slug
+        'lfmt_admin_dashboard',     // Callback function
+        'dashicons-clipboard',      // Menu icon
+        6                           // Position
+    );
+
+    // Add submenu page under the main menu
+    add_submenu_page(
+        'law-firm-dashboard',        // Parent menu slug (same as the main menu slug)
+        'Case Manager',              // Page title
+        'Case Manager',              // Menu title
+        'manage_options',            // Capability
+        'case-manager',              // Menu slug
+        'lfmt_case_manager_page',    // Callback function
+        7                            // Position
     );
 }
-add_action('admin_menu', 'daily_work_admin_menu');
 
-function daily_work_admin_page()
+
+// Shortcode to display the user dashboard.
+add_shortcode('user_dashboard', 'lfmt_user_dashboard');
+
+
+
+// Frontend Scripts
+function wpft_frontend_script()
 {
-    if (!current_user_can('manage_options')) {
-        return;
-    }
+    wp_enqueue_script('frontenScript', plugins_url('../assets/js/script.js', __FILE__), ['jquery'], null, true);
+    wp_enqueue_style('frontendStyle', plugins_url('../src/css/style.css', __FILE__), array(), false);
 
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'daily_work';
-    $results = $wpdb->get_results("SELECT * FROM $table_name ORDER BY created_at DESC");
-
-    echo '<h2>All Work Submissions</h2>';
-    echo '<table border="1" style="width:100%; text-align:left;">
-            <tr>
-                <th>Employee ID</th>
-                <th>Work Description</th>
-                <th>File</th>
-                <th>Date</th>
-            </tr>';
-    foreach ($results as $row) {
-        echo '<tr>';
-        echo '<td>' . esc_html($row->employee_id) . '</td>';
-        echo '<td>' . esc_html($row->work_description) . '</td>';
-        echo '<td>' . ($row->file_path ? '<a href="' . esc_url($row->file_path) . '" target="_blank">Download</a>' : 'No file') . '</td>';
-        echo '<td>' . esc_html($row->created_at) . '</td>';
-        echo '</tr>';
-    }
-    echo '</table>';
+    wp_localize_script('frontenScript', 'ajax_variables', array(
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('my-ajax-nonce')
+    ));
 }
+add_action('wp_enqueue_scripts', 'wpft_frontend_script');
 
-function daily_work_employee_panel()
-{
-    // if (current_user_can('employee')) {
-        echo '<h2>Daily Work Submission</h2>';
-        ?>
-        <form method="post" enctype="multipart/form-data">
-            <textarea name="work_description" rows="5" cols="40" placeholder="Describe your work" required></textarea>
-            <br><br>
-            <label for="file_upload">Upload File:</label>
-            <input type="file" name="file_upload" id="file_upload">
-            <br><br>
-            <button type="submit" name="submit_work">Submit</button>
-        </form>
-        <?php
-
-        if (isset($_POST['submit_work'])) {
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'daily_work';
-            // $employee_id = get_current_user_id();
-            $employee_id = 1;
-            $work_description = sanitize_textarea_field($_POST['work_description']);
-            $file_path = '';
-
-            if (isset($_FILES['file_upload']) && $_FILES['file_upload']['error'] === UPLOAD_ERR_OK) {
-                $upload = wp_upload_bits($_FILES['file_upload']['name'], null, file_get_contents($_FILES['file_upload']['tmp_name']));
-                if (!$upload['error']) {
-                    $file_path = $upload['url'];
-                }
-            }
-
-            $wpdb->insert($table_name, [
-                'employee_id' => $employee_id,
-                'work_description' => $work_description,
-                'file_path' => $file_path
-            ]);
-
-            echo '<p>Work submitted successfully!</p>';
-        }
-    }
-// }
-add_shortcode('daily_work_employee_panel', 'daily_work_employee_panel');

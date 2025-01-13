@@ -11,15 +11,15 @@ function createAllTables()
   global $wpdb;
   $wpft_registered = "wpft_registered";
 
-  if (get_option($wpft_registered) !== false) {
+  if (get_option($wpft_registered) === null) {
     return;
   }
 
   try {
-    // Create the custom database table.
-    $table_plugin = $wpdb->prefix . "wp_file_trello";
     $charset_collate = $wpdb->get_charset_collate();
 
+    // Table for cases.
+    $table_plugin = $wpdb->prefix . "wp_file_trello";
     $createTablePlugin = "CREATE TABLE $table_plugin (
              id INT(11) NOT NULL AUTO_INCREMENT,
              employee_id INT(11) NOT NULL,
@@ -29,53 +29,66 @@ function createAllTables()
              PRIMARY KEY (id)
          ) $charset_collate;";
 
+    // Table for comments on cases.
+    $table_comments = $wpdb->prefix . "wp_case_comments";
+    $createTableComments = "CREATE TABLE $table_comments (
+             id INT(11) NOT NULL AUTO_INCREMENT,
+             case_id INT(11) NOT NULL,
+             comment TEXT NOT NULL,
+             employee_id INT(11) NOT NULL,
+             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+             PRIMARY KEY (id),
+             FOREIGN KEY (case_id) REFERENCES $table_plugin(id) ON DELETE CASCADE
+         ) $charset_collate;";
+
+    // Table for uploaded files related to cases.
+    $table_files = $wpdb->prefix . "wp_case_files";
+    $createTableFiles = "CREATE TABLE $table_files (
+             id INT(11) NOT NULL AUTO_INCREMENT,
+             case_id INT(11) NOT NULL,
+             file_path VARCHAR(255) NOT NULL,
+             employee_id INT(11) NOT NULL,
+             uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+             PRIMARY KEY (id),
+             FOREIGN KEY (case_id) REFERENCES $table_plugin(id) ON DELETE CASCADE
+         ) $charset_collate;";
+
     require_once ABSPATH . "wp-admin/includes/upgrade.php";
     dbDelta($createTablePlugin);
-
-    // Add 'employee' role if it doesn't exist.
-    if (!get_role('employee')) {
-      $result = add_role('employee', 'Employee', [
-        'read' => true,
-        'upload_files' => true,
-      ]);
-
-      if ($result === null) {
-        error_log('Failed to create employee role.');
-      }
-    }
+    dbDelta($createTableComments);
+    dbDelta($createTableFiles);
 
     // Mark plugin as registered.
-    add_option($wpft_registered, true);
+    update_option($wpft_registered, true);
   } catch (Throwable $error) {
     error_log('Error during plugin activation: ' . $error->getMessage());
     deactivate_plugins(plugin_basename(__FILE__)); // Deactivate the plugin on failure.
   }
 }
 
-
 function removeAllTables()
 {
-  $optionsToDelette = [
-    "wpft_registered"
-  ];
-
   global $wpdb;
 
   $table_plugin = $wpdb->prefix . "wp_file_trello";
+  $table_comments = $wpdb->prefix . "wp_case_comments";
+  $table_files = $wpdb->prefix . "wp_case_files";
+
+  $optionsToDelete = ["wpft_registered"];
 
   try {
-    $removal_pluginDatabase = "DROP TABLE IF EXISTS {$table_plugin}";
-    $remResult2 = $wpdb->query($removal_pluginDatabase);
+    // Drop all custom tables.
+    $wpdb->query("DROP TABLE IF EXISTS $table_files");
+    $wpdb->query("DROP TABLE IF EXISTS $table_comments");
+    $wpdb->query("DROP TABLE IF EXISTS $table_plugin");
 
-    foreach ($optionsToDelette as $options_value) {
-      if (get_option($options_value)) {
-        delete_option($options_value);
+    // Remove plugin options.
+    foreach ($optionsToDelete as $option) {
+      if (get_option($option)) {
+        delete_option($option);
       }
     }
-
-    return $remResult2;
-  } catch (\Throwable $erro) {
-    error_log($erro->getMessage());
-    return $erro;
+  } catch (Throwable $error) {
+    error_log('Error during plugin deactivation: ' . $error->getMessage());
   }
 }
