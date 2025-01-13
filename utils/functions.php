@@ -64,7 +64,7 @@ add_shortcode('user_dashboard', 'lfmt_user_dashboard');
 function wpft_frontend_script()
 {
     wp_enqueue_script('frontenScript', plugins_url('../assets/js/script.js', __FILE__), ['jquery'], null, true);
-    wp_enqueue_style('frontendStyle', plugins_url('../src/css/style.css', __FILE__), array(), false);
+    wp_enqueue_style('frontendStyle', plugins_url('../assets/css/styles.css', __FILE__), array(), false);
 
     wp_localize_script('frontenScript', 'ajax_variables', array(
         'ajax_url' => admin_url('admin-ajax.php'),

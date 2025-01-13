@@ -29,7 +29,7 @@ function lfmt_admin_dashboard()
         echo '<table class="wp-list-table widefat fixed striped">';
         echo '<thead>
                 <tr>
-                    <th>ID</th>
+                    <th>Title</th>
                     <th>Employee ID</th>
                     <th>Work Description</th>
                     <th>File</th>
@@ -40,7 +40,7 @@ function lfmt_admin_dashboard()
         echo '<tbody>';
         foreach ($cases as $case) {
             echo '<tr>';
-            echo '<td>' . esc_html($case->id) . '</td>';
+            echo '<td>' . esc_html($case->case_title) . '</td>';
             echo '<td>' . esc_html($case->employee_id) . '</td>';
             echo '<td>' . esc_html($case->work_description) . '</td>';
             echo '<td>' . (!empty($case->file_path) ? '<a href="' . esc_url($case->file_path) . '" target="_blank">View File</a>' : 'No File') . '</td>';
@@ -60,6 +60,10 @@ function lfmt_admin_dashboard()
     echo '<h2>Add New Case</h2>';
     echo '<form method="post" action="">
         <table class="form-table">
+        <tr>
+                <th><label for="case_title">Case Title</label></th>
+                <td><input type="text" id="case_title" name="case_title" required class="regular-text"></textarea></td>
+            </tr>
             <tr>
                 <th><label for="employee_ids">Assign Employees</label></th>
                 <td>
@@ -70,7 +74,7 @@ function lfmt_admin_dashboard()
     if (!empty($employees)) {
         foreach ($employees as $employee) {
             echo '<option value="' . esc_attr($employee->ID) . '">' . esc_html($employee->display_name) . ' (' . esc_html($employee->user_email) . ')</option>';
-        }   
+        }
     } else {
         echo '<option value="" disabled>No employees found</option>';
     }
@@ -98,12 +102,14 @@ function lfmt_admin_dashboard()
 
     // Handle Case Submission.
     if (isset($_POST['submit_case'])) {
+        $case_title = sanitize_text_field($_POST['case_title']);
         $employee_id = intval($_POST['employee_ids']);
         $work_description = sanitize_text_field($_POST['work_description']);
         $file_path = sanitize_text_field($_POST['file_path']);
 
         $wpdb->insert($table_name, [
             'employee_id' => $employee_id,
+            'case_title' => $case_title,
             'work_description' => $work_description,
             'file_path' => $file_path,
             'created_at' => current_time('mysql'),

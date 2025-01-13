@@ -23,6 +23,7 @@ function createAllTables()
     $createTablePlugin = "CREATE TABLE $table_plugin (
              id INT(11) NOT NULL AUTO_INCREMENT,
              employee_id INT(11) NOT NULL,
+             case_title TEXT NOT NULL,
              work_description TEXT NOT NULL,
              file_path VARCHAR(255) DEFAULT NULL,
              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
