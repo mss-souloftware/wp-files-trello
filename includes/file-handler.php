@@ -46,7 +46,7 @@ function lfmt_handle_file_upload($file, $case_id)
             return new WP_Error('db_error', 'There was an error updating the database.');
         }
     } else {
-        return new WP_Error('move_error', 'The file could not be moved.');
+        return new WP_Error('move_error', 'The file could not be moved.');-
     }
 }
 

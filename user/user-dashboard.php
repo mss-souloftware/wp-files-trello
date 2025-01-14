@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once(ABSPATH . 'wp-admin/includes/file.php');
+
 function lfmt_user_dashboard()
 {
     // Ensure the user is logged in and has the 'employee' role.
@@ -36,9 +38,105 @@ function lfmt_user_dashboard()
     ));
 
     ob_start();
-    if (isset($_GET['case_id'])) { ?>
+    if (isset($_GET['case_id'])) {
+        $case_id = intval($_GET['case_id']);
 
-        <h1>Testing</h1>
+        // Fetch case details from the database
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wp_file_trello';
+
+        $case = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $case_id
+        ));
+
+        if ($case) {
+            // Display case details
+            echo '<div class="casePanelMain">';
+            echo '<div class="commentData">';
+            echo '<h1>' . esc_html($case->case_title) . '</h1>';
+            echo '<p><strong>Work Description:</strong> ' . esc_html($case->work_description) . '</p>';
+            echo '<p><strong>Created At:</strong> ' . esc_html(date('F j, Y, g:i A', strtotime($case->created_at))) . '</p>'; ?>
+
+            <h2>Comments</h2>
+            <?php
+            $comments = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $comments_table WHERE case_id = %d ORDER BY created_at ASC",
+                $case_id
+            ));
+
+            if (!empty($comments)) { ?>
+                <div class="commentsPanel">
+                    <?php
+                    foreach ($comments as $comment) {
+                        ?>
+                        <div class="commentCard">
+                            <span class="nameBox">
+                                <?php
+                                $user_info = get_userdata($user_id);
+                                echo $user_info->display_name; ?>
+                            </span>
+                            <?php echo $comment->comment; ?>
+                            <span class="dateBox">
+                                <?php echo date('F j, Y, g:i A', strtotime($comment->created_at)); ?>
+                            </span>
+                        </div>
+                    <?php } ?>
+
+                </div>
+            <?php } else {
+                echo '<p>No comments yet.</p>';
+            } ?>
+
+            <?php
+            // File upload and status update forms (hidden by default).
+            echo '<div id="status-update-form" >
+                    <h3>Update Work Status</h3>
+                    <form method="post" action="">
+                        <input type="hidden" name="case_id" id="update_case_id" value="' . $case_id . '">
+                        <textarea name="work_status" rows="5" required placeholder="Enter your status update here..."></textarea>
+                        <p class="submit">
+                            <input type="submit" name="submit_status" class="button button-primary" value="Update Status">
+                        </p>
+                    </form>
+                </div>';
+
+            echo '</div>'; ?>
+            <div class="filesData">
+                <?php
+                // Fetch files for the current case.
+                $files = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM $files_table WHERE case_id = %d ORDER BY uploaded_at ASC",
+                    $case_id
+                ));
+
+                if (!empty($files)) {
+                    echo '<ul>';
+                    foreach ($files as $file) {
+                        echo '<li><a href="' . esc_url($file->file_path) . '" target="_blank">View File</a> <small>(' . esc_html(date('F j, Y, g:i A', strtotime($file->uploaded_at))) . ')</small></li>';
+                    }
+                    echo '</ul>';
+                } else {
+                    echo 'No files uploaded.';
+                }
+                echo '<div id="file-upload-form" >
+                <h3>Upload File</h3>
+                <form method="post" enctype="multipart/form-data" action="">
+                    <input type="hidden" name="case_id" id="upload_case_id" value="' . $case_id . '">
+                    <input type="file" name="case_file" required>
+                    <p class="submit">
+                        <input type="submit" name="submit_file" class="button button-primary" value="Upload File">
+                    </p>
+                </form>
+            </div>';
+                ?>
+            </div>
+            <?php
+            echo '</div>';
+        } else {
+            echo '<p>No case found with the provided ID.</p>';
+        }
+        ?>
 
     <?php } else {
         echo '<div class="wrap">';
@@ -52,7 +150,7 @@ function lfmt_user_dashboard()
 
                 <a class="casePanel" href="<?php echo 'http://localhost/google-sheet/panel/?case_id=' . $case->id; ?>">
                     <div class="caseDetails">
-                        <span><?php echo $case->created_at; ?></span>
+                        <span><?php echo date('F j, Y, g:i A', strtotime($case->created_at)); ?></span>
                         <h3>
                             <?php echo $case->case_title; ?>
                         </h3>
@@ -60,105 +158,24 @@ function lfmt_user_dashboard()
                             <?php echo $case->work_description; ?>
                         </p>
                     </div>
-                    <div class="assignEmployee"></div>
+                    <div class="assignEmployee">
+                        <h3>
+                            Assigned To:
+                        </h3>
+                        <span>
+                            <?php
+                            $user_info = get_userdata($user_id);
+                            echo $user_info->display_name; ?>
+                        </span>
+                    </div>
                 </a>
 
                 <?php
             }
-            echo '<table class="wp-list-table widefat fixed striped">';
-            echo '<thead>
-                <tr>
-                    <th>Case Title</th>
-                    <th>Work Description</th>
-                    <th>File</th>
-                    <th>Created At</th>
-                    <th>Comments</th>
-                    <th>Uploaded Files</th>
-                    <th>Actions</th>
-                </tr>
-              </thead>';
-            echo '<tbody>';
-            foreach ($cases as $case) {
-                // Fetch comments for the current case.
-                $comments = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM $comments_table WHERE case_id = %d ORDER BY created_at ASC",
-                    $case->id
-                ));
-
-                // Fetch files for the current case.
-                $files = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM $files_table WHERE case_id = %d ORDER BY uploaded_at ASC",
-                    $case->id
-                ));
-
-                echo '<tr>';
-                echo '<td>' . esc_html($case->case_title) . '</td>';
-                echo '<td>' . esc_html($case->work_description) . '</td>';
-                echo '<td>' . (!empty($case->file_path) ? '<a href="' . esc_url($case->file_path) . '" target="_blank">View File</a>' : 'No File') . '</td>';
-                echo '<td>' . esc_html($case->created_at) . '</td>';
-
-                // Display comments.
-                echo '<td>';
-                if (!empty($comments)) {
-                    echo '<ul>';
-                    foreach ($comments as $comment) {
-                        echo '<li>' . esc_html($comment->comment) . ' <small>(' . esc_html($comment->created_at) . ')</small></li>';
-                    }
-                    echo '</ul>';
-                } else {
-                    echo 'No comments yet.';
-                }
-                echo '</td>';
-
-                // Display uploaded files.
-                echo '<td>';
-                if (!empty($files)) {
-                    echo '<ul>';
-                    foreach ($files as $file) {
-                        echo '<li><a href="' . esc_url($file->file_path) . '" target="_blank">View File</a> <small>(' . esc_html($file->uploaded_at) . ')</small></li>';
-                    }
-                    echo '</ul>';
-                } else {
-                    echo 'No files uploaded.';
-                }
-                echo '</td>';
-
-                echo '<td>
-                    <button class="button button-primary update-status-btn" data-case-id="' . esc_attr($case->id) . '">Update Status</button>
-                    <button class="button button-secondary upload-file-btn" data-case-id="' . esc_attr($case->id) . '">Upload File</button>
-                  </td>';
-                echo '</tr>';
-            }
-            echo '</tbody>';
-            echo '</table>';
         } else {
             echo '<p>No cases assigned to you.</p>';
         }
     }
-    // File upload and status update forms (hidden by default).
-    echo '<div id="status-update-form" >
-            <h3>Update Work Status</h3>
-            <form method="post" action="">
-                <input type="hidden" name="case_id" id="update_case_id">
-                <textarea name="work_status" rows="5" required placeholder="Enter your status update here..."></textarea>
-                <p class="submit">
-                    <input type="submit" name="submit_status" class="button button-primary" value="Update Status">
-                </p>
-            </form>
-          </div>';
-
-    echo '<div id="file-upload-form" >
-            <h3>Upload File</h3>
-            <form method="post" enctype="multipart/form-data" action="">
-                <input type="hidden" name="case_id" id="upload_case_id">
-                <input type="file" name="case_file" required>
-                <p class="submit">
-                    <input type="submit" name="submit_file" class="button button-primary" value="Upload File">
-                </p>
-            </form>
-          </div>';
-
-    echo '</div>';
 
     // Handle Status Update.
     if (isset($_POST['submit_status'])) {

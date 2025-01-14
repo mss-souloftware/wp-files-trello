@@ -59,7 +59,7 @@ function lfmt_case_manager_page()
                         <select id="employee_ids" name="employee_ids[]" multiple required class="regular-text">';
                         
                         // Fetch all users with the 'employee' role.
-                        $employees = get_users(['role' => 'employee']);
+                        $employees = get_users(['role' => 'employee']); 
                         if (!empty($employees)) {
                             foreach ($employees as $employee) {
                                 echo '<option value="' . esc_attr($employee->ID) . '">' . esc_html($employee->display_name) . ' (' . esc_html($employee->user_email) . ')</option>';
@@ -107,7 +107,7 @@ function lfmt_case_manager_page()
             echo '<td>' . esc_html($case->employee_id) . '</td>';
             echo '<td>' . esc_html($case->work_description) . '</td>';
             echo '<td>' . (!empty($case->file_path) ? '<a href="' . esc_url($case->file_path) . '" target="_blank">View File</a>' : 'No File') . '</td>';
-            echo '<td>' . esc_html($case->created_at) . '</td>';
+            echo '<td>' . esc_html(date('F j, Y, g:i A', strtotime($case->created_at))) . '</td>';
             echo '<td>
                     <a href="' . esc_url(add_query_arg(['delete_case' => $case->id])) . '" class="button button-secondary">Delete</a>
                   </td>';

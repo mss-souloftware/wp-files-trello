@@ -1,5 +1,6 @@
 .casePanel {
     display: flex;
+    justify-content: space-between;
     padding: 15px;
     background: #fff;
     border: 1px solid #a7a7a7;
@@ -12,4 +13,67 @@
 
 .casePanel h3 {
     color: #262B3E;
+}
+
+.commentsPanel .commentCard {
+    background: #fff;
+    padding: 10px;
+    border: 1px solid #A7A7A7;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.commentsPanel .commentCard .dateBox {
+    position: absolute;
+    font-size: 12px;
+    top: -10px;
+    background: #fff;
+    padding: 0 5px;
+    right: 20px;
+}
+
+.commentsPanel .commentCard .nameBox {
+    position: absolute;
+    font-size: 12px;
+    top: -10px;
+    background: #fff;
+    padding: 0 5px;
+    left: 20px;
+}
+
+
+.casePanelMain {
+    display: flex;
+}
+
+.casePanelMain .commentData {
+    width: 70%;
+}
+
+.casePanelMain .filesData {
+    position: sticky;
+    top: 0;
+    width: 30%;
+    padding: 15px;
+    border: 1px solid #A7A7A7;
+    margin-left: 30px;
+    border-radius: 15px;
+}
+
+.casePanelMain .filesData ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.casePanelMain .filesData ul li {
+    background: #EFEFEF;
+    padding: 5px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.casePanelMain .filesData input[type="file"] {
+    margin-bottom: 10px;
 }

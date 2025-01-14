@@ -44,7 +44,7 @@ function lfmt_admin_dashboard()
             echo '<td>' . esc_html($case->employee_id) . '</td>';
             echo '<td>' . esc_html($case->work_description) . '</td>';
             echo '<td>' . (!empty($case->file_path) ? '<a href="' . esc_url($case->file_path) . '" target="_blank">View File</a>' : 'No File') . '</td>';
-            echo '<td>' . esc_html($case->created_at) . '</td>';
+            echo '<td>' . esc_html(date('F j, Y, g:i A', strtotime($case->created_at))) . '</td>';
             echo '<td>
                     <a href="?page=law-firm-dashboard&action=delete&id=' . intval($case->id) . '" class="button button-danger">Delete</a>
                   </td>';
@@ -102,23 +102,31 @@ function lfmt_admin_dashboard()
 
     // Handle Case Submission.
     if (isset($_POST['submit_case'])) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wp_file_trello';
+
         $case_title = sanitize_text_field($_POST['case_title']);
-        $employee_id = intval($_POST['employee_ids']);
+        $employee_ids = $_POST['employee_ids']; // This is an array.
         $work_description = sanitize_text_field($_POST['work_description']);
         $file_path = sanitize_text_field($_POST['file_path']);
 
-        $wpdb->insert($table_name, [
-            'employee_id' => $employee_id,
-            'case_title' => $case_title,
-            'work_description' => $work_description,
-            'file_path' => $file_path,
-            'created_at' => current_time('mysql'),
-        ]);
+        if (is_array($employee_ids) && !empty($employee_ids)) {
+            foreach ($employee_ids as $employee_id) {
+                $wpdb->insert($table_name, [
+                    'employee_id' => intval($employee_id),
+                    'case_title' => $case_title,
+                    'work_description' => $work_description,
+                    'file_path' => $file_path,
+                    'created_at' => current_time('mysql'),
+                ]);
+            }
+        }
 
         // Redirect to avoid form resubmission.
         wp_redirect(admin_url('admin.php?page=law-firm-dashboard'));
         exit;
     }
+
 
     // Handle Case Deletion.
     if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
